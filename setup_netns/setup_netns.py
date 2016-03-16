@@ -22,9 +22,13 @@ outer_ip = IPRoute()
 
 unshare(CLONE_NEWNET)
 inner_ip = IPRoute()
-def create_veth(outer_name, inner_name):
+def create_veth(outer_name, inner_name, mac=None):
     # Create the interface
-    inner_ip.link_create(ifname=outer_name, kind='veth', peer=inner_name)
+    peer_name = inner_name
+    if mac:
+        mac = '{}:{}:{}:{}:{}:{}'.format(mac[0:2], mac[2:4], mac[4:6], mac[6:8], mac[8:10], mac[10:12])
+        peer_name = {'address': mac, 'name': inner_name}
+    inner_ip.link_create(ifname=outer_name, kind='veth', peer=peer_name)
     host_if = inner_ip.link_lookup(ifname=outer_name)[0]
     # And move the outer half to the parent namespace
     inner_ip.link('set', index=host_if, net_ns_fd=outer_netns)
@@ -46,19 +50,19 @@ def run():
         if sys.argv[0] == '--veth':
             sys.argv.pop(0)
             args = sys.argv.pop(0).split(':')
-            if len(args) != 2:
+            if len(args) != 2 and len(args) != 3:
                 print("setup-ns: Wrong format for --veth: '{}'."
-                      "Use host_interface_name:container_interface_name."
+                      "Use host_ifname:container_ifname[:mac]."
                       .format(':'.join(args)))
-            create_veth(args[0], args[1])
+            create_veth(*args)
         elif sys.argv[0] == '--bridge':
             sys.argv.pop(0)
             args = sys.argv.pop(0).split(':')
-            if len(args) != 3:
+            if len(args) != 3 and len(args) != 4:
                 print("setup-ns: Wrong format for --veth: '{}'."
-                      "Use bridge:host_interface_name:container_interface_name."
+                      "Use bridge:host_ifname:container_ifname[:mac]."
                       .format(':'.join(args)))
-            create_veth(args[1], args[2])
+            create_veth(*args[1:])
             add_to_bridge(args[0], args[1])
         else:
             os.execvp(sys.argv[0], sys.argv) 
