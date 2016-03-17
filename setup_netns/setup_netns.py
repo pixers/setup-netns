@@ -27,7 +27,7 @@ def create_veth(outer_name, inner_name, mac=None):
     peer_name = inner_name
     if mac:
         mac = '{}:{}:{}:{}:{}:{}'.format(mac[0:2], mac[2:4], mac[4:6], mac[6:8], mac[8:10], mac[10:12])
-        peer_name = {'address': mac, 'name': inner_name}
+        peer_name = {'address': mac, 'ifname': inner_name}
     inner_ip.link_create(ifname=outer_name, kind='veth', peer=peer_name)
     host_if = inner_ip.link_lookup(ifname=outer_name)[0]
     # And move the outer half to the parent namespace
